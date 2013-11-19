@@ -1,5 +1,6 @@
 require "onelinejson/version"
 require 'json'
+require 'lograge'
 
 require 'active_support/core_ext/class/attribute'
 require 'active_support/log_subscriber'
@@ -7,7 +8,7 @@ require 'active_support/log_subscriber'
 module Onelinejson
   class TestSubscriber < ActiveSupport::LogSubscriber
     def process_action(event)
-      return if Lograge.ignore?(event)
+      return if ::Lograge.ignore?(event)
 
       data = {
         request: {},
@@ -22,8 +23,8 @@ module Onelinejson
       data[:response].merge! location(event)
       data.merge! custom_options(event)
 
-      formatted_message = Lograge.formatter.call(data)
-      logger.send(Lograge.log_level, formatted_message)
+      formatted_message = ::Lograge.formatter.call(data)
+      logger.send(::Lograge.log_level, formatted_message)
     end
 
     def redirect_to(event)
@@ -31,7 +32,7 @@ module Onelinejson
     end
 
     def logger
-      Lograge.logger.presence or super
+      ::Lograge.logger.presence or super
     end
 
     private
@@ -70,7 +71,7 @@ module Onelinejson
     end
 
     def custom_options(event)
-      Lograge.custom_options(event) || {}
+      ::Lograge.custom_options(event) || {}
     end
 
     def runtimes(event)
@@ -94,10 +95,37 @@ module Onelinejson
     end
   end
 
+  module AppControllerMethods
+    def append_info_to_payload(payload)
+      super
+      payload[:request] = {
+        params: params.reject { |k,v|
+          k == 'controller' || k == 'action' || v.is_a?(ActionDispatch::Http::UploadedFile)
+        },
+        headers: request.headers.env.reject {|k, v| !k.starts_with?("HTTP_") || k == "HTTP_AUTHORIZATION"},
+        ip: request.ip,
+        uuid: request.env['action_dispatch.request_id'],
+        controller: self.class.name,
+        date: Time.now.utc.iso8601,
+      }
+      payload[:request][:user_id] = current_user.id if defined?(current_user) && current_user
+    end
+  end
+
+  class JsonFormatter
+    def call(data)
+      ::JSON.dump(data)
+    end
+  end
+
   class Railtie < Rails::Railtie
     config.lograge = ActiveSupport::OrderedOptions.new
     config.lograge.subscriber = TestSubscriber
-    config.lograge.formatter = Lograge::Formatters::Json.new
+    config.lograge.formatter = JsonFormatter.new
     config.lograge.enabled = true
+
+    ActiveSupport.on_load(:action_controller) do
+      include AppControllerMethods
+    end
   end
 end
