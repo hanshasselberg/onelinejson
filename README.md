@@ -38,7 +38,7 @@ It has the following top level entries: `request`, `response` and `debug_info`. 
 
 Add this line to your application's Gemfile:
 
-    gem "lograge", git: "git@github.com:i0rek/lograge.git", branch: "config_subscriber"
+    gem "lograge", git: "git@github.com:i0rek/lograge.git", branch: "before_format"
     gem 'onelinejson'
 
 You need my lograge repo for now, until my PR got merged which I hope will happen eventually.
