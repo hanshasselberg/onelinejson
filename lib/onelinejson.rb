@@ -35,7 +35,6 @@ module Onelinejson
     config.lograge.formatter = ::Lograge::Formatters::Json.new
     config.lograge.enabled = true
     config.lograge.before_format = lambda do |data, payload|
-      data.merge(payload)
       request = payload[:request].merge(data.select{ |k,_|
         [:method, :path, :format, :controller, :action].include?(k)
       })
