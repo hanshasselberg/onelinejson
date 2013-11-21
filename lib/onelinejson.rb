@@ -13,20 +13,26 @@ module Onelinejson
         request.headers.env
       elsif request.headers.respond_to?(:to_hash)
         request.headers.to_hash
-      end.reject {|k, v| !k.starts_with?("HTTP_") || k == "HTTP_AUTHORIZATION"}
+      end.reject do |k, v|
+        !k.starts_with?("HTTP_") || k == "HTTP_AUTHORIZATION"
+      end
+      parameters = params.reject do |k,v|
+        k == 'controller' ||
+          k == 'action' ||
+          v.is_a?(ActionDispatch::Http::UploadedFile)
+      end
 
       payload[:request] = {
-        params: params.reject { |k,v|
-          k == 'controller' || k == 'action' || v.is_a?(ActionDispatch::Http::UploadedFile)
-        },
+        params: parameters,
         headers: headers,
         ip: request.ip,
         uuid: request.env['action_dispatch.request_id'],
         controller: self.class.name,
         date: Time.now.utc.iso8601,
       }
-      payload[:request][:user_id] = current_user.id if defined?(current_user) && current_user
-
+      if defined?(current_user) && current_user
+        payload[:request][:user_id] = current_user.id
+      end
     end
   end
 
@@ -41,12 +47,13 @@ module Onelinejson
       response = data.select{ |k,_|
         [:status, :duration, :view, :view_runtime].include?(k)
       }
-      Hash[{
+      {
+        debug_info: payload[:debug_info] || {},
         request: request,
         response: response,
-        debug_info: payload[:debug_info]
-      }.sort]
+      }
     end
+
     ActiveSupport.on_load(:action_controller) do
       include AppControllerMethods
     end
