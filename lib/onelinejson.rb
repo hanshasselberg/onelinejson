@@ -30,9 +30,7 @@ module Onelinejson
         controller: self.class.name,
         date: Time.now.utc.iso8601,
       }
-      if defined?(current_user) && current_user
-        payload[:request][:user_id] = current_user.id
-      end
+      payload[:request][:user_id] = @current_user_id || (@current_user && @current_user.id)
     end
   end
 
