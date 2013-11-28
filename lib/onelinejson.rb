@@ -30,7 +30,10 @@ module Onelinejson
         controller: self.class.name,
         date: Time.now.utc.iso8601,
       }
-      payload[:request][:user_id] = @current_user_id || (@current_user && @current_user.id)
+      u_id = @current_user_id || (@current_user && @current_user.id)
+      if u_id.present?
+        payload[:request][:user_id] = u_id.to_i
+      end
     end
   end
 
