@@ -43,7 +43,7 @@ module Onelinejson
     config.lograge.enabled = true
     config.lograge.before_format = lambda do |data, payload|
       request = data.select{ |k,_|
-        [:method, :path, :format, :controller, :action].include?(k)
+        [:method, :path, :format, :action].include?(k)
       }.merge(payload[:request])
       response = data.select{ |k,_|
         [:status, :duration, :view, :view_runtime].include?(k)
