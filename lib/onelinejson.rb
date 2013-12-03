@@ -14,7 +14,7 @@ module Onelinejson
       elsif request.headers.respond_to?(:to_hash)
         request.headers.to_hash
       end.reject do |k, v|
-        !k.starts_with?("HTTP_") || k == "HTTP_AUTHORIZATION"
+        !k.starts_with?("HTTP_") || k == "HTTP_AUTHORIZATION" || k.include?("HIDDEN")
       end
       parameters = params.reject do |k,v|
         k == 'controller' ||
