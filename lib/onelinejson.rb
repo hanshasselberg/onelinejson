@@ -1,3 +1,4 @@
+# encoding: utf-8
 require "onelinejson/version"
 require 'json'
 require 'lograge'
@@ -34,9 +35,9 @@ module Onelinejson
       end
     end]
   end
-  
+
   def self.enforce_max_json_length(hash)
-    return hash if JSON.dumps(hash).size < LOG_MAX_LENGTH
+    return hash if JSON.dump(hash).size <= LOG_MAX_LENGTH
 
     deleted = hash[:request].delete(:params) || hash[:request].delete(:headers)
     if deleted
@@ -53,8 +54,8 @@ module Onelinejson
         request.headers.env
       elsif request.headers.respond_to?(:to_hash)
         request.headers.to_hash
-      end.collect do |k, v|
-        k =~ /^HTTP_/ && ! REJECTED_HEADERS.any? {|regex| k =~ regex}
+      end.select do |k, v|
+        k =~ /^HTTP_/ && !REJECTED_HEADERS.any? {|regex| k =~ regex}
       end
       parameters = params.reject do |k,v|
         k == 'controller' ||
