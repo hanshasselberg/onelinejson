@@ -70,7 +70,7 @@ module Onelinejson
         ip: request.ip,
         uuid: request.env['action_dispatch.request_id'],
         controller: self.class.name,
-        action: params['action'],
+        action: action_name,
         date: Time.now.utc.iso8601,
       }
       u_id = @current_user_id || (@current_user && @current_user.id)
