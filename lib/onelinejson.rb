@@ -23,7 +23,7 @@ module Onelinejson
     private
     def trim_values(hash, trim_to)
       Hash[hash.map do |k, v|
-        if v.kind_of? String
+        if v.is_a? String
           trimmed = if v.size > trim_to
             v[0, trim_to] + ELIP
           else
@@ -49,7 +49,8 @@ module Onelinejson
       parameters = params.reject do |k,v|
         k == 'controller' ||
           k == 'action' ||
-          v.is_a?(ActionDispatch::Http::UploadedFile)
+          v.is_a?(ActionDispatch::Http::UploadedFile) ||
+          v.is_a?(Hash)
       end
 
       payload[:request] = {
@@ -58,6 +59,7 @@ module Onelinejson
         ip: request.ip,
         uuid: request.env['action_dispatch.request_id'],
         controller: self.class.name,
+        action: params['action'],
         date: Time.now.utc.iso8601,
       }
       u_id = @current_user_id || (@current_user && @current_user.id)
@@ -73,7 +75,7 @@ module Onelinejson
     config.lograge.enabled = true
     config.lograge.before_format = lambda do |data, payload|
       request = data.select{ |k,_|
-        [:method, :path, :format, :action].include?(k)
+        [:method, :path, :format].include?(k)
       }.merge(payload[:request])
       response = data.select{ |k,_|
         [:status, :duration, :view, :view_runtime].include?(k)
