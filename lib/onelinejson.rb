@@ -6,6 +6,18 @@ require 'active_support/core_ext/class/attribute'
 require 'active_support/log_subscriber'
 
 module Onelinejson
+  REJECTED_HEADERS = [
+    /^HTTP_CACHE_.+/,
+    /^HTTP_CONNECTION$/,
+    /^HTTP_VERSION$/,
+    /^HTTP_PRAGMA$/,
+    /^HTTP_ACCEPT_LANGUAGE$/,
+    /^HTTP_REFERER$/,
+    /^HTTP_COOKIE$/,
+    /^HTTP_AUTHORIZATION$/,
+    /.*HIDDEN.*/,
+  ]
+
   module AppControllerMethods
     def append_info_to_payload(payload)
       super
@@ -13,8 +25,8 @@ module Onelinejson
         request.headers.env
       elsif request.headers.respond_to?(:to_hash)
         request.headers.to_hash
-      end.reject do |k, v|
-        !k.starts_with?("HTTP_") || k == "HTTP_AUTHORIZATION" || k.include?("HIDDEN")
+      end.collect do |k, v|
+        k =~ /^HTTP_/ && ! REJECTED_HEADERS.any? {|regex| k =~ regex}
       end
       parameters = params.reject do |k,v|
         k == 'controller' ||
