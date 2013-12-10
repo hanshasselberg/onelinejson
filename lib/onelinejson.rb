@@ -17,8 +17,26 @@ module Onelinejson
     /^HTTP_AUTHORIZATION$/,
     /.*HIDDEN.*/,
   ]
+  ELIP = "\xe2\x80\xa6"
 
   module AppControllerMethods
+    private
+    def trim_values(hash, trim_to)
+      Hash[hash.map do |k, v|
+        if v.kind_of? String
+          trimmed = if v.size > trim_to
+            v[0, trim_to] + ELIP
+          else
+            v
+          end
+          [k, trimmed]
+        else
+          [k, v]
+        end
+      end]
+    end
+
+    public
     def append_info_to_payload(payload)
       super
       headers = if request.headers.respond_to?(:env)
@@ -35,7 +53,7 @@ module Onelinejson
       end
 
       payload[:request] = {
-        params: parameters,
+        params: trim_values(parameters, 128),
         headers: headers,
         ip: request.ip,
         uuid: request.env['action_dispatch.request_id'],
