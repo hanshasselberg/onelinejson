@@ -18,25 +18,35 @@ module Onelinejson
     /.*HIDDEN.*/,
   ]
   ELIP = "\xe2\x80\xa6"
+  LOG_MAX_LENGTH = 1900
+
+  def self.trim_values(hash, trim_to)
+    Hash[hash.map do |k, v|
+      if v.is_a? String
+        trimmed = if v.size > trim_to
+          v[0, trim_to] + ELIP
+        else
+          v
+        end
+        [k, trimmed]
+      else
+        [k, v]
+      end
+    end]
+  end
+  
+  def self.enforce_max_json_length(hash)
+    return hash if JSON.dumps(hash).size < LOG_MAX_LENGTH
+
+    deleted = hash[:request].delete(:params) || hash[:request].delete(:headers)
+    if deleted
+      enforce_max_json_length(hash)
+    else
+      hash
+    end
+  end
 
   module AppControllerMethods
-    private
-    def trim_values(hash, trim_to)
-      Hash[hash.map do |k, v|
-        if v.is_a? String
-          trimmed = if v.size > trim_to
-            v[0, trim_to] + ELIP
-          else
-            v
-          end
-          [k, trimmed]
-        else
-          [k, v]
-        end
-      end]
-    end
-
-    public
     def append_info_to_payload(payload)
       super
       headers = if request.headers.respond_to?(:env)
@@ -54,7 +64,7 @@ module Onelinejson
       end
 
       payload[:request] = {
-        params: trim_values(parameters, 128),
+        params: Onelinejson.trim_values(parameters, 128),
         headers: headers,
         ip: request.ip,
         uuid: request.env['action_dispatch.request_id'],
@@ -81,11 +91,12 @@ module Onelinejson
       response = data.select{ |k,_|
         [:status, :duration, :view, :view_runtime].include?(k)
       }
-      {
-        debug_info: payload[:debug_info] || {},
-        request: request,
-        response: response,
-      }
+      Onelinejson.enforce_max_json_length(
+        {
+          debug_info: payload[:debug_info] || {},
+          request: request,
+          response: response,
+        })
     end
 
     ActiveSupport.on_load(:action_controller) do
