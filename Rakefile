@@ -4,11 +4,11 @@ Bundler.setup
 require "rake"
 require "rspec/core/rake_task"
 $LOAD_PATH.unshift File.expand_path("../lib", __FILE__)
-require "onelineversion/version"
+require "onelinejson/version"
 
 task :gem => :build
 task :build do
-  system "gem build onelineversion.gemspec"
+  system "gem build onelinejson.gemspec"
 end
 
 task :install => :build do
@@ -16,9 +16,9 @@ task :install => :build do
 end
 
 task :release => :build do
-  system "git tag -a v#{Onelineversion::VERSION} -m 'Tagging #{Onelineversion::VERSION}'"
+  system "git tag -a v#{Onelinejson::VERSION} -m 'Tagging #{Onelinejson::VERSION}'"
   system "git push --tags"
-  system "gem push typhoeus-#{Onelineversion::VERSION}.gem"
+  system "gem push onelinejson-#{Onelinejson::VERSION}.gem"
 end
 
 RSpec::Core::RakeTask.new(:spec) do |t|
