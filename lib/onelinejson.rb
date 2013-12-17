@@ -20,21 +20,22 @@ module Onelinejson
   ]
   ELIP = "\xe2\x80\xa6"
   LOG_MAX_LENGTH = 1900
-
-  def self.trim_values(hash, trim_to)
-    Hash[hash.map do |k, v|
-      if v.is_a? String
-        trimmed = if v.size > trim_to
-          v[0, trim_to] + ELIP
-        else
-          v
-        end
-        [k, trimmed]
-      else
-        [k, v]
-      end
-    end]
+  ENTRY_MAX_LENGTH = 128
+  BEFORE_HOOK = lambda do |data, payload|
+    request = data.select{ |k,_|
+      [:method, :path, :format].include?(k)
+    }.merge(payload[:request])
+    response = data.select{ |k,_|
+      [:status, :duration, :view, :view_runtime].include?(k)
+    }
+    Onelinejson.enforce_max_json_length(
+      {
+        debug_info: payload[:debug_info] || {},
+        request: request,
+        response: response,
+      })
   end
+
 
   def self.enforce_max_json_length(hash)
     return hash if JSON.dump(hash).size <= LOG_MAX_LENGTH
@@ -48,24 +49,50 @@ module Onelinejson
   end
 
   module AppControllerMethods
-    def append_info_to_payload(payload)
-      super
-      headers = if request.headers.respond_to?(:env)
-        request.headers.env
-      elsif request.headers.respond_to?(:to_hash)
-        request.headers.to_hash
+    extend self # for testing
+
+    def trim_values(hash)
+      Hash[hash.map do |k, v|
+        if v.is_a? String
+          trimmed = if v.size > ENTRY_MAX_LENGTH
+            v[0, ENTRY_MAX_LENGTH-1] + ELIP
+          else
+            v
+          end
+          [k, trimmed]
+        else
+          [k, v]
+        end
+      end]
+    end
+
+    def extract_headers(headers)
+      if headers.respond_to?(:env)
+        headers.env
+      elsif headers.respond_to?(:to_hash)
+        headers.to_hash
       end.select do |k, v|
         k =~ /^HTTP_/ && !REJECTED_HEADERS.any? {|regex| k =~ regex}
       end
-      parameters = params.reject do |k,v|
+    end
+
+    def extract_params(params)
+      params.reject do |k,v|
         k == 'controller' ||
           k == 'action' ||
           v.is_a?(ActionDispatch::Http::UploadedFile) ||
           v.is_a?(Hash)
       end
+    end
 
+    def append_info_to_payload(payload)
+      super
+
+      parameters = extract_params(params)
+      parameters = trim_values(parameters)
+      headers = extract_headers(request.headers)
       payload[:request] = {
-        params: Onelinejson.trim_values(parameters, 128),
+        params: parameters,
         headers: headers,
         ip: request.ip,
         uuid: request.env['action_dispatch.request_id'],
@@ -81,25 +108,12 @@ module Onelinejson
   end
 
   class Railtie < Rails::Railtie
+    puts 'FUUUU'
     config.log_tags = nil
     config.lograge = ActiveSupport::OrderedOptions.new
     config.lograge.formatter = ::Lograge::Formatters::Json.new
     config.lograge.enabled = true
-    config.lograge.before_format = lambda do |data, payload|
-      request = data.select{ |k,_|
-        [:method, :path, :format].include?(k)
-      }.merge(payload[:request])
-      response = data.select{ |k,_|
-        [:status, :duration, :view, :view_runtime].include?(k)
-      }
-      Onelinejson.enforce_max_json_length(
-        {
-          debug_info: payload[:debug_info] || {},
-          request: request,
-          response: response,
-        })
-    end
-
+    config.lograge.before_format = Onelinejson::BEFORE_HOOK
     ActiveSupport.on_load(:action_controller) do
       include AppControllerMethods
     end
