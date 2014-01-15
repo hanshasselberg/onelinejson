@@ -108,7 +108,6 @@ module Onelinejson
   end
 
   class Railtie < Rails::Railtie
-    puts 'FUUUU'
     config.log_tags = nil
     config.lograge = ActiveSupport::OrderedOptions.new
     config.lograge.formatter = ::Lograge::Formatters::Json.new
