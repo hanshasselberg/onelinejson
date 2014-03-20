@@ -19,7 +19,7 @@ module Onelinejson
     /.*HIDDEN.*/,
   ]
   ELIP = "\xe2\x80\xa6"
-  LOG_MAX_LENGTH = 1800
+  LOG_MAX_LENGTH = 16384
   ENTRY_MAX_LENGTH = 128
   BEFORE_HOOK = lambda do |data, payload|
     request = data.select{ |k,_|
