@@ -18,6 +18,12 @@ module Onelinejson
     /^HTTP_AUTHORIZATION$/,
     /.*HIDDEN.*/,
   ]
+
+  REJECTED_PARAMS = [
+    "password",
+    "password_confirmation"
+  ]
+
   ELIP = "\xe2\x80\xa6"
   LOG_MAX_LENGTH = 16384
   ENTRY_MAX_LENGTH = 128
@@ -80,8 +86,9 @@ module Onelinejson
       params.reject do |k,v|
         k == 'controller' ||
           k == 'action' ||
-          v.is_a?(ActionDispatch::Http::UploadedFile) ||
-          v.is_a?(Hash)
+          (defined?(ActionDispatch) && v.is_a?(ActionDispatch::Http::UploadedFile)) ||
+          v.is_a?(Hash) ||
+          REJECTED_PARAMS.include?(k.to_s.downcase)
       end
     end
 

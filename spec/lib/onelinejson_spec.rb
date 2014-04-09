@@ -19,12 +19,37 @@ describe Onelinejson::AppControllerMethods do
   end
 
   describe '.extract_headers' do
+    let(:headers) { {"HTTP_X" => 0, "HTTP_AUTHORIZATION" => 1} }
+    let(:extracted) { Onelinejson::AppControllerMethods.extract_headers(headers) }
+    it "rejects Authorization" do
+      expect(extracted).to eq({"HTTP_X" => 0})
+    end
+
     context 'when rails 3' do
-      it 'extracts'
+      let(:headers) { stub(env: {"HTTP_X" => 0}) }
+      it 'extracts' do
+        expect(extracted).to eq({"HTTP_X" => 0})
+      end
     end
 
     context 'when rails 4' do
-      it 'extracts'
+      let(:headers) { stub(to_hash: {"HTTP_X" => 0}) }
+      it 'extracts' do
+        expect(extracted).to eq({"HTTP_X" => 0})
+      end
+    end
+  end
+
+  describe '.extract_params' do
+    let(:params) { {password: 0, "password" => 1, "password_confirmation" => 2, "x" => 3} }
+    let(:extracted) { Onelinejson::AppControllerMethods.extract_params(params) }
+
+    it 'rejects password' do
+      expect(extracted).to eq({"x" => 3})
+    end
+
+    it 'rejects password_confirmation' do
+      expect(extracted).to eq({"x" => 3})
     end
   end
 
