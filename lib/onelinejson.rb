@@ -16,6 +16,7 @@ module Onelinejson
     /^HTTP_REFERER$/,
     /^HTTP_COOKIE$/,
     /^HTTP_AUTHORIZATION$/,
+    /^HTTP_X_ACCESS_TOKEN$/,
     /.*HIDDEN.*/,
   ]
 
