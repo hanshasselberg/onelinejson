@@ -59,7 +59,7 @@ module Onelinejson
     extend self # for testing
 
     def trim_values(hash)
-      Hash[hash.map do |k, v|
+      Hash[hash.to_unsafe_h.map do |k, v|
         if v.is_a? String
           trimmed = if v.size > ENTRY_MAX_LENGTH
             v[0, ENTRY_MAX_LENGTH-1] + ELIP
